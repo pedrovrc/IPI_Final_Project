@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 import pywt
 import matplotlib.pyplot as plt
+import math
 
 
 # ---------- Start of functions ----------
@@ -10,19 +11,24 @@ def ycbcr2bgr(Y_img, Cb_img, Cr_img):
 
     # Getting the sizes of my Y image so as to create Red, Green and Blue ones
     height, width = Y_img.shape
-    Red_img = np.zeros((height, width), dtype=np.int16)
-    Green_img = np.zeros((height, width), dtype=np.int16)
-    Blue_img = np.zeros((height, width), dtype=np.int16)
+    Red_img = np.zeros((height, width), dtype=np.int32)
+    Green_img = np.zeros((height, width), dtype=np.int32)
+    Blue_img = np.zeros((height, width), dtype=np.int32)
     # Obs.: using dtype = np.int16 so as to determine which values will be negative,
     # and then convert these values to 0
 
-    # Converting my YCbCr image to Red, Green and Blue images
-    Red_img[:, :] = Y_img[:, :] + (1.402 * Cr_img[:, :] - 128 * 1.402)
-    Green_img[:, :] = Y_img[:, :] - (0.344 * Cb_img[:, :] - 128 * 0.344) - (0.714 * Cr_img[:, :] - 128 * 0.714136)
-    Blue_img[:, :] = Y_img[:, :] + (1.772 * Cb_img[:, :] - 128 * 1.772)
+    new_Y = remap_tonescale(Y_img)
+    new_Cb = remap_tonescale(Cb_img)
+    new_Cr = remap_tonescale(Cr_img)
 
-    remap_tonescale(Cb_img)
-    remap_tonescale(Cr_img)
+    cv2.imshow("Cb", new_Cb)
+    cv2.imshow("Cr", new_Cr)
+    cv2.waitKey(0)
+
+    # Converting my YCbCr image to Red, Green and Blue images
+    Red_img[:, :] = new_Y[:, :] + (1.402 * new_Cr[:, :] - 128 * 1.402)
+    Green_img[:, :] = new_Y[:, :] - (0.344 * new_Cb[:, :] - 128 * 0.344) - (0.714 * new_Cr[:, :] - 128 * 0.714)
+    Blue_img[:, :] = new_Y[:, :] + (1.772 * new_Cb[:, :] - 128 * 1.772)
 
     # Checking if there is any pixel out of the range (0-256)
     for line in range(0, height):
@@ -43,7 +49,7 @@ def ycbcr2bgr(Y_img, Cb_img, Cr_img):
                 Red_img[line, column] = 0
 
     # Putting together the Red, Green and Blue images so as to build a final RGB image
-    final_img = np.zeros((height, width, 3), dtype=np.uint8)
+    final_img = np.zeros((height, width, 3), dtype=np.int32)
     final_img[:, :, 0] = Blue_img[:, :]
     final_img[:, :, 1] = Green_img[:, :]
     final_img[:, :, 2] = Red_img[:, :]
@@ -53,8 +59,11 @@ def ycbcr2bgr(Y_img, Cb_img, Cr_img):
 
 def remap_tonescale(image):
     height, width = image.shape
-    maximum = -50
-    minimum = 100
+    maximum = 0
+    minimum = 0
+    image2 = np.zeros((height, width), dtype=np.uint8)
+
+    image2[:, :] = image[:, :]
 
     for i in range(0, height):
         for j in range(0, width):
@@ -63,10 +72,17 @@ def remap_tonescale(image):
             if (image[i, j] < minimum):
                 minimum = image[i, j]
 
-    print(maximum)
-    print(minimum)
+    for i in range(0, height):
+        for j in range(0, width):
+            image[i, j] = image[i, j] - minimum
 
+    maximum = maximum - minimum
 
+    for i in range(0, height):
+        for j in range(0, width):
+            image2[i, j] = ((image[i, j]*255)/maximum)
+
+    return image2
 # ---------- End of Functions ----------
 
 
@@ -78,20 +94,31 @@ cv2.imshow("Textured", tex_img)
 cv2.waitKey(0)
 
 # Compute wavelet transform of textured image
-coeffs = pywt.dwt2(tex_img[:, :, 0], 'db2')
+coeffs = pywt.dwt2(tex_img[:, :, 0], 'haar')
 cA, (cH, cV, cD) = coeffs
+
+# Show components of wavelet transform
+titles = ['Approximation', ' Horizontal detail',
+          'Vertical detail', 'Diagonal detail']
+fig = plt.figure(figsize=(12, 3))
+for i, a in enumerate([cA, cH, cV, cD]):
+    ax = fig.add_subplot(1, 4, i + 1)
+    ax.imshow(a, interpolation="nearest", cmap=plt.cm.gray)
+    ax.set_title(titles[i], fontsize=10)
+    ax.set_xticks([])
+    ax.set_yticks([])
+fig.tight_layout()
+plt.show()
 
 # Get Cb and Cr channels from Horizontal and Vertical components
 Cb_channel = cv2.resize(cH, (width, height))
 Cr_channel = cv2.resize(cV, (width, height))
 
-# Inverse transform without cH and cV to obtain Y' channel
-Y_channel = pywt.idwt2((cA, (None, None, cD)), 'db2')
-plt.imshow(Y_channel, interpolation="nearest", cmap=plt.cm.gray)
-plt.show()
+# Resize cA to use as Y'
+cA_resize = cv2.resize(cA, (width, height))
 
 # Convert Y', Cb and Cr channels to BGR components and show result
-result = ycbcr2bgr(Y_channel, Cb_channel, Cr_channel)
+result = ycbcr2bgr(cA_resize, Cb_channel, Cr_channel)
 cv2.imshow("Result", result)
 cv2.waitKey(0)
 

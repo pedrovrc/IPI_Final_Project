@@ -44,7 +44,7 @@ cv2.imshow("Cr", Cr_channel)
 cv2.waitKey(0)
 
 # Compute wavelet transform
-coeffs = pywt.dwt2(Y_channel, 'db2')
+coeffs = pywt.dwt2(Y_channel, 'haar')
 cA, (cH, cV, cD) = coeffs
 
 # Show components of wavelet transform
@@ -80,12 +80,12 @@ fig.tight_layout()
 plt.show()
 
 # Compute inverse transform and show result
-result = pywt.idwt2(coeffs, 'db2')
+result = pywt.idwt2(coeffs, 'haar')
 plt.imshow(result, interpolation="nearest", cmap=plt.cm.gray)
 plt.show()
 
 # Save result image
-cv2.imwrite("texturizado.png", result)
+cv2.imwrite("texturizada.png", result)
 
 cv2.destroyAllWindows()
 # ---------- End of Main Program ----------
