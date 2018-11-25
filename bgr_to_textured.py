@@ -26,12 +26,23 @@ def bgr2ycbcr(image):  # Converts image from bgr space to ycbcr space
     Cr[:, :] = (0.713 * image[:, :, 2]) - (0.713 * Y[:, :]) + 128
 
     return [Y, Cb, Cr]
+
+def remap_tonescale(image):
+    height, width = image.shape
+
+    norm = np.zeros((height, width), dtype=np.float64)
+    cv2.normalize(image, norm, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_64F)
+
+    scaled = np.zeros((height, width), dtype=np.uint8)
+    scaled[:, :] = norm[:, :] * 255
+
+    return scaled
 # ---------- End of Functions ----------
 
 
 # ---------- Start of Main Program ----------
 # Load and show original bgr image
-bgr_image = cv2.imread("mapa.png")
+bgr_image = cv2.imread("lena.jpg")
 height, width, channels = bgr_image.shape
 cv2.imshow("original", bgr_image)
 cv2.waitKey(0)
@@ -42,6 +53,8 @@ cv2.imshow("Y", Y_channel)
 cv2.imshow("Cb", Cb_channel)
 cv2.imshow("Cr", Cr_channel)
 cv2.waitKey(0)
+# cv2.imwrite("original_Cb.png", Cb_channel)
+# cv2.imwrite("original_Cr.png", Cr_channel)
 
 # Compute wavelet transform
 coeffs = pywt.dwt2(Y_channel, 'haar')
@@ -66,7 +79,15 @@ new_Cr = cv2.resize(Cr_channel, (cV.shape[1], cV.shape[0]))
 cH[:, :] = new_Cb[:, :]
 cV[:, :] = new_Cr[:, :]
 
-# Show components of wavelet transform
+#
+#
+#
+# Try putting max and min values in cH and cV
+#
+#
+#
+
+# Show components of wavelet transform after inclusion of Cb and Cr
 titles = ['Approximation', ' Horizontal detail',
           'Vertical detail', 'Diagonal detail']
 fig = plt.figure(figsize=(12, 3))
@@ -80,7 +101,7 @@ fig.tight_layout()
 plt.show()
 
 # Compute inverse transform and show result
-result = pywt.idwt2(coeffs, 'haar')
+result = pywt.idwt2((cA, (new_Cb, new_Cr, cD)), 'haar')
 plt.imshow(result, interpolation="nearest", cmap=plt.cm.gray)
 plt.show()
 
