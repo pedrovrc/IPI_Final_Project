@@ -17,29 +17,21 @@ def ycbcr2bgr(Y_img, Cb_img, Cr_img):
     # and then remap the values according to np.uint8
 
     # Show Cb and Cr before changes
-    plt.imshow(Cb_img, interpolation="bicubic", cmap=plt.cm.gray)
-    plt.show()
-    plt.imshow(Cr_img, interpolation="bicubic", cmap=plt.cm.gray)
-    plt.show()
+    #plt.imshow(Cb_img, interpolation="bicubic", cmap=plt.cm.gray)
+    #plt.show()
+    #plt.imshow(Cr_img, interpolation="bicubic", cmap=plt.cm.gray)
+    #plt.show()
 
     # Remapping channels
-    Y_img = remap_tonescale(Y_img, 255, 0)
-    Cb_img = remap_tonescale(Cb_img, 255, 0)
-    Cr_img = remap_tonescale(Cr_img, 255, 0)
-
-    # Power laws to fix contrast
-    # Cb_img = cv2.pow(Cb_img, 0.8)
-    # Cr_img = cv2.pow(Cr_img, 0.8)
+    #Y_img = remap_tonescale(Y_img, 255, 0)
+    #Cb_img = remap_tonescale(Cb_img, 255, 0)
+    #Cr_img = remap_tonescale(Cr_img, 255, 0)
 
     # Show Cb and Cr after changes
-    plt.imshow(Cb_img, interpolation="bicubic", cmap=plt.cm.gray)
-    plt.show()
-    plt.imshow(Cr_img, interpolation="bicubic", cmap=plt.cm.gray)
-    plt.show()
-
-    # Saving image components for analysis
-    # cv2.imwrite("recovered_Cb.png", Cb_img)
-    # cv2.imwrite("recovered_Cr.png", Cr_img)
+    #plt.imshow(Cb_img, interpolation="bicubic", cmap=plt.cm.gray)
+    #plt.show()
+    #plt.imshow(Cr_img, interpolation="bicubic", cmap=plt.cm.gray)
+    #plt.show()
 
     # Converting YCbCr image to Red, Green and Blue images
     Red_img[:, :] = Y_img[:, :] + (1.402 * Cr_img[:, :] - 128 * 1.402)
@@ -57,6 +49,20 @@ def ycbcr2bgr(Y_img, Cb_img, Cr_img):
     final_img[:, :, 1] = Green_img[:, :]
     final_img[:, :, 2] = Red_img[:, :]
 
+    # Saving image components for analysis
+    #low_offs = (Cb_img.min() * 255)/(Cb_img.max() - Cb_img.min())
+    #high_offs = (Cb_img.max() * 255)/(Cb_img.max() - Cb_img.min())
+    #Cb_img = remap_tonescale(Cb_img, high_offs, low_offs)
+    #Cb_img = remap_tonescale(Cb_img, 255, 0)
+
+    #low_offs = (Cr_img.min() * 255)/(Cr_img.max() - Cr_img.min())
+    #high_offs = (Cr_img.max() * 255)/(Cr_img.max() - Cr_img.min())
+    #Cr_img = remap_tonescale(Cr_img, high_offs, low_offs)
+    #Cr_img = remap_tonescale(Cr_img, 255, 0)
+
+    #cv2.imwrite("recovered_Cb.png", Cb_img.astype(np.uint8))
+    #cv2.imwrite("recovered_Cr.png", Cr_img.astype(np.uint8))
+
     return final_img
 
 
@@ -68,52 +74,6 @@ def remap_tonescale(image, high, low):
     cv2.normalize(image, norm, alpha=low, beta=high, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_64F)
 
     return norm
-
-
-def median_filter(image):  # Uses median to remove peaks of 255 or 0 in image
-    height, width = image.shape
-
-    # Create padding around image
-    borderedImage = cv2.copyMakeBorder(image, 2, 2, 2, 2, cv2.BORDER_CONSTANT, value=[0, 0, 0])
-
-    # For each pixel, get it and its neighbours in an array and get the median value as the new value
-    for i in range(0, height):
-        for j in range(0, width):
-            pixel_array = get_pixels(borderedImage, i+1, j+1)
-            pixel_array.sort()
-            length = pixel_array.__len__()
-            image[i, j] = pixel_array[int(length/2)-1]
-
-
-def get_pixels(image, i, j):  # Returns a pixel and its 24 neighbours in an array
-    px1 = image[i, j]
-    px2 = image[i-1, j-1]
-    px3 = image[i, j-1]
-    px4 = image[i+1, j-1]
-    px5 = image[i+1, j]
-    px6 = image[i+1, j+1]
-    px7 = image[i, j+1]
-    px8 = image[i-1, j+1]
-    px9 = image[i-1, j]
-    px10 = image[i-2, j-2]
-    px11 = image[i-2, j-1]
-    px12 = image[i-2, j]
-    px13 = image[i-2, j+1]
-    px14 = image[i-2, j+2]
-    px15 = image[i-1, j+2]
-    px16 = image[i, j+2]
-    px17 = image[i+1, j+2]
-    px18 = image[i+2, j+2]
-    px19 = image[i+2, j+1]
-    px20 = image[i+2, j]
-    px21 = image[i+2, j-1]
-    px22 = image[i+2, j-2]
-    px23 = image[i+1, j-2]
-    px24 = image[i, j-2]
-    px25 = image[i-1, j-2]
-    return [px1, px2, px3, px4, px5, px6, px7, px8, px9, px10,
-            px11, px12, px13, px14, px15, px16, px17, px18, px19, px20,
-            px21, px22, px23, px24, px25]
 # ---------- End of Functions ----------
 
 
