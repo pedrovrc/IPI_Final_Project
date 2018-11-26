@@ -2,7 +2,6 @@ import cv2
 import numpy as np
 import pywt
 import matplotlib.pyplot as plt
-import math
 
 
 # ---------- Start of functions ----------
@@ -17,35 +16,40 @@ def ycbcr2bgr(Y_img, Cb_img, Cr_img):
     # Obs.: using dtype = np.float64 so as to determine which values will be negative,
     # and then remap the values according to np.uint8
 
-    # Find a way to remove noise from Horizontal and Vertical components from Cb and Cr channels
-    # Having them removed means that we can change the remapping to not spread the values of Cb and Cr
-
-    plt.imshow(Cb_img, interpolation="nearest", cmap=plt.cm.gray)
+    # Show Cb and Cr before changes
+    plt.imshow(Cb_img, interpolation="bicubic", cmap=plt.cm.gray)
     plt.show()
-    plt.imshow(Cr_img, interpolation="nearest", cmap=plt.cm.gray)
+    plt.imshow(Cr_img, interpolation="bicubic", cmap=plt.cm.gray)
     plt.show()
 
-    # Attenuating borders
-    median_filter(Cb_img)
-    median_filter(Cr_img)
+    # Remapping channels
+    Y_img = remap_tonescale(Y_img, 255, 0)
+    Cb_img = remap_tonescale(Cb_img, 255, 0)
+    Cr_img = remap_tonescale(Cr_img, 255, 0)
 
-    plt.imshow(Cb_img, interpolation="nearest", cmap=plt.cm.gray)
+    # Power laws to fix contrast
+    # Cb_img = cv2.pow(Cb_img, 0.8)
+    # Cr_img = cv2.pow(Cr_img, 0.8)
+
+    # Show Cb and Cr after changes
+    plt.imshow(Cb_img, interpolation="bicubic", cmap=plt.cm.gray)
     plt.show()
-    plt.imshow(Cr_img, interpolation="nearest", cmap=plt.cm.gray)
+    plt.imshow(Cr_img, interpolation="bicubic", cmap=plt.cm.gray)
     plt.show()
 
+    # Saving image components for analysis
     # cv2.imwrite("recovered_Cb.png", Cb_img)
     # cv2.imwrite("recovered_Cr.png", Cr_img)
 
-    # Converting my YCbCr image to Red, Green and Blue images
+    # Converting YCbCr image to Red, Green and Blue images
     Red_img[:, :] = Y_img[:, :] + (1.402 * Cr_img[:, :] - 128 * 1.402)
     Green_img[:, :] = Y_img[:, :] - (0.344 * Cb_img[:, :] - 128 * 0.344) - (0.714 * Cr_img[:, :] - 128 * 0.714)
     Blue_img[:, :] = Y_img[:, :] + (1.772 * Cb_img[:, :] - 128 * 1.772)
 
-    # Remapping to uint8
-    Red_img = remap_tonescale(Red_img)
-    Green_img = remap_tonescale(Green_img)
-    Blue_img = remap_tonescale(Blue_img)
+    # Remapping to uint8 scale [0, 255]
+    Red_img = remap_tonescale(Red_img, 255, 0)
+    Green_img = remap_tonescale(Green_img, 255, 0)
+    Blue_img = remap_tonescale(Blue_img, 255, 0)
 
     # Putting together the Red, Green and Blue images so as to build a final RGB image
     final_img = np.zeros((height, width, 3), dtype=np.uint8)
@@ -53,20 +57,18 @@ def ycbcr2bgr(Y_img, Cb_img, Cr_img):
     final_img[:, :, 1] = Green_img[:, :]
     final_img[:, :, 2] = Red_img[:, :]
 
-    # Converting my matrix to an unsigned one so as to build correctly the final image
     return final_img
 
-# Returns an image proper for viewing (dtype=np.uint8)
-def remap_tonescale(image):
+
+# Remaps an image's tone scale to chosen scale
+def remap_tonescale(image, high, low):
     height, width = image.shape
 
     norm = np.zeros((height, width), dtype=np.float64)
-    cv2.normalize(image, norm, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_64F)
+    cv2.normalize(image, norm, alpha=low, beta=high, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_64F)
 
-    scaled = np.zeros((height, width), dtype=np.uint8)
-    scaled[:, :] = norm[:, :] * 255
+    return norm
 
-    return scaled
 
 def median_filter(image):  # Uses median to remove peaks of 255 or 0 in image
     height, width = image.shape
@@ -79,9 +81,11 @@ def median_filter(image):  # Uses median to remove peaks of 255 or 0 in image
         for j in range(0, width):
             pixel_array = get_pixels(borderedImage, i+1, j+1)
             pixel_array.sort()
-            image[i, j] = pixel_array[12]
+            length = pixel_array.__len__()
+            image[i, j] = pixel_array[int(length/2)-1]
 
-def get_pixels(image, i, j):  # Returns a pixel and its 8 neighbours in an array (used in salt and pepper filter)
+
+def get_pixels(image, i, j):  # Returns a pixel and its 24 neighbours in an array
     px1 = image[i, j]
     px2 = image[i-1, j-1]
     px3 = image[i, j-1]
@@ -130,7 +134,7 @@ titles = ['Approximation', ' Horizontal detail',
 fig = plt.figure(figsize=(12, 3))
 for i, a in enumerate([cA, cH, cV, cD]):
     ax = fig.add_subplot(1, 4, i + 1)
-    ax.imshow(a, interpolation="nearest", cmap=plt.cm.gray)
+    ax.imshow(a, interpolation="bicubic", cmap=plt.cm.gray)
     ax.set_title(titles[i], fontsize=10)
     ax.set_xticks([])
     ax.set_yticks([])
@@ -142,8 +146,8 @@ Cb_channel = cv2.resize(cH, (width, height))
 Cr_channel = cv2.resize(cV, (width, height))
 
 # Resize cA to use as Y'
-#Y_channel = pywt.idwt2((cA, (None, None, cD)), 'haar')
-Y_channel = cv2.resize(cA, (width, height), interpolation=cv2.INTER_LINEAR)
+#cA = pywt.idwt2((cA, (None, None, cD)), 'haar')
+Y_channel = cv2.resize(cA, (width, height), interpolation=cv2.INTER_CUBIC)
 
 # Convert Y', Cb and Cr channels to BGR components and show result
 result = ycbcr2bgr(Y_channel, Cb_channel, Cr_channel)

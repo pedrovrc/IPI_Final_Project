@@ -35,19 +35,15 @@ def remap_tonescale(image, high, low):  # Used to stretch Cb and Cr mappings to 
 
 # ---------- Start of Main Program ----------
 # Load and show original bgr image
-bgr_image = cv2.imread("mapa.png")
+bgr_image = cv2.imread("lena.jpg")
 height, width, channels = bgr_image.shape
 cv2.imshow("original", bgr_image)
 cv2.waitKey(0)
 
-# Create and show Y, Cb and Cr channels
+# Create and save Y, Cb and Cr channels (saving for analysis)
 Y_channel, Cb_channel, Cr_channel = bgr2ycbcr(bgr_image)
-cv2.imshow("Y", Y_channel)
-cv2.imshow("Cb", Cb_channel)
-cv2.imshow("Cr", Cr_channel)
-cv2.waitKey(0)
-cv2.imwrite("original_Cb.png", Cb_channel)
-cv2.imwrite("original_Cr.png", Cr_channel)
+# cv2.imwrite("original_Cb.png", Cb_channel)
+# cv2.imwrite("original_Cr.png", Cr_channel)
 
 # Compute wavelet transform
 coeffs = pywt.dwt2(Y_channel, 'haar')
@@ -66,7 +62,7 @@ for i, a in enumerate([cA, cH, cV, cD]):
 fig.tight_layout()
 plt.show()
 
-# Remap Cb and Cr channels to fit cH and cV scales
+# Remap Cb and Cr channels to the cH and cV scales
 Cb_channel = remap_tonescale(Cb_channel, cH.max(), cH.min())
 Cr_channel = remap_tonescale(Cr_channel, cV.max(), cV.min())
 
