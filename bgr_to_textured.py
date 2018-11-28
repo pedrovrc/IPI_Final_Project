@@ -7,28 +7,24 @@ import matplotlib.pyplot as plt
 # ---------- Start of Functions ----------
 def bgr2ycbcr(image):  # Converts image from bgr space to ycbcr space
     height, width, channels = image.shape
-
+    # Calculate Y channel
     Y = np.zeros((height, width), dtype=np.float64)
     Y[:, :] += image[:, :, 2] * 0.299
     Y[:, :] += image[:, :, 1] * 0.587
     Y[:, :] += image[:, :, 0] * 0.114
 
+    # Other channels derived from Y channel, blue and red
     Cb = np.zeros((height, width), dtype=np.float64)
     Cr = np.zeros((height, width), dtype=np.float64)
-
-    # Other channels derived from Y channel, blue and red
     Cb[:, :] = (0.564 * image[:, :, 0]) - (0.564 * Y[:, :]) + 128
     Cr[:, :] = (0.713 * image[:, :, 2]) - (0.713 * Y[:, :]) + 128
-
     return [Y, Cb, Cr]
 
 
-def remap_tonescale(image, high, low):  # Used to stretch Cb and Cr mappings to fit cH and cV scales
+def remap_tonescale(image, high, low):  # Remaps an image's tone scale to chosen scale
     height, width = image.shape
-
     norm = np.zeros((height, width), dtype=np.float64)
     cv2.normalize(image, norm, alpha=low, beta=high, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_64F)
-
     return norm
 # ---------- End of Functions ----------
 
@@ -42,12 +38,12 @@ cv2.waitKey(0)
 
 # Create and save Y, Cb and Cr channels (saving for analysis)
 Y_channel, Cb_channel, Cr_channel = bgr2ycbcr(bgr_image)
-#cv2.imwrite("original_Cb.png", Cb_channel)
-#cv2.imwrite("original_Cr.png", Cr_channel)
+#cv2.imwrite("Y.png", Y_channel)
+#cv2.imwrite("Cb.png", Cb_channel)
+#cv2.imwrite("Cr.png", Cr_channel)
 
 # Compute wavelet transform
-coeffs = pywt.dwt2(Y_channel, 'haar')
-cA, (cH, cV, cD) = coeffs
+cA, (cH, cV, cD) = pywt.dwt2(Y_channel, 'haar')
 
 # Show components of wavelet transform
 titles = ['Approximation', ' Horizontal detail',
