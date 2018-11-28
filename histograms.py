@@ -8,14 +8,14 @@ def plot(orig, recov):
 
     # Add image1
     ax = fig.add_subplot(1, 4, 1)
-    ax.imshow(orig, interpolation="nearest")
+    ax.imshow(orig, interpolation="bicubic")
     ax.set_title(titles[0], fontsize=10)
     ax.set_xticks([])
     ax.set_yticks([])
 
     # Add image2
     ax = fig.add_subplot(1, 4, 2)
-    ax.imshow(recov, interpolation="nearest")
+    ax.imshow(recov, interpolation="bicubic")
     ax.set_title(titles[1], fontsize=10)
     ax.set_xticks([])
     ax.set_yticks([])
